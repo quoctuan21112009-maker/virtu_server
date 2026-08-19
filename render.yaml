@@ -1,16 +1,16 @@
 services:
   - type: web
-    name: virtu-server
+    name: virtu-frontend-server
     env: python
-    region: singapore          # chọn region gần VN nhất để giảm độ trễ
-    plan: free                 # đổi thành starter/standard nếu cần luôn-online, không sleep
+    region: singapore
+    plan: free
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn may_chu:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
+    startCommand: "gunicorn frontend_server:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
-      - key: ALLOWED_ORIGINS
-        value: "*"              # đổi thành domain frontend thật khi deploy production
-      # - key: SECRET_KEY
-      #   generateValue: true   # bật nếu server dùng SECRET_KEY để ký JWT
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
     healthCheckPath: /api/suc_khoe
