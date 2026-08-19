@@ -12,6 +12,24 @@ export default defineConfig({
   build: {
     outDir: 'static_build',
     emptyOutDir: true,
-    minify: 'esbuild'
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        // Đảm bảo các file CSS được tách riêng
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'assets/[name].[hash].[ext]'
+          }
+          return 'assets/[name].[hash].[ext]'
+        }
+      }
+    }
+  },
+
+  // Quan trọng: xử lý CSS đúng cách
+  css: {
+    preprocessorOptions: {
+      // Nếu dùng SCSS/SASS
+    }
   }
 })
