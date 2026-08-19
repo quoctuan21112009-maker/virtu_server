@@ -1,99 +1,193 @@
-from flask import Flask, request, jsonify, send_file, make_response
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from datetime import datetime, timedelta
-import hashlib
-import secrets
 import os
 import json
+import uuid
 import base64
-import qrcode
+import secrets
+import hashlib
+from datetime import datetime, timedelta
 from io import BytesIO
 from functools import wraps
+from typing import Dict, List, Optional, Any
 import logging
-from typing import Dict, List, Optional
-import uuid
+
+from flask import Flask, request, jsonify, send_file, make_response
+from flask_cors import CORS
+from flask_jwt_extended import (
+    JWTManager, create_access_token, jwt_required, 
+    get_jwt_identity, set_access_cookies, unset_jwt_cookies
+)
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
+from PIL import Image, ImageDraw, ImageFont
+import qrcode
+import numpy as np
 
 # Cấu hình logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
+# Khởi tạo Flask app
 app = Flask(__name__)
 
-# CORS Configuration
+# Cấu hình từ environment variables
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=8)
+app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
+app.config['JWT_COOKIE_SECURE'] = False  # Đặt True trong production với HTTPS
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+
+# Database configuration
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL or 'sqlite:///virtu.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 10,
+    'pool_recycle': 300,
+    'pool_pre_ping': True,
+}
+
+# Khởi tạo extensions
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
+
+# Cấu hình CORS
+cors_origins = os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5000')
+cors_origins = [origin.strip() for origin in cors_origins.split(',')]
+
 CORS(app, 
      resources={
          r"/api/*": {
-             "origins": ["http://localhost:3000", "http://localhost:5000", "http://127.0.0.1:3000"],
-             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization", "Accept"],
+             "origins": cors_origins,
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+             "allow_headers": ["Content-Type", "Authorization", "Accept", "X-Requested-With"],
              "expose_headers": ["Content-Type", "Authorization"],
              "supports_credentials": True,
              "max_age": 3600
          }
      })
 
-# JWT Configuration
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=8)
-jwt = JWTManager(app)
-
-# Database mock - trong production nên dùng database thật
-# Sử dụng dictionary để lưu dữ liệu
-DATABASE = {
-    'users': {},
-    'phong_thi': {},
-    'hoc_sinh': {},
-    'vi_pham': {},
-    'sessions': {}
-}
-
-# Data mẫu cho demo
-def init_demo_data():
-    """Khởi tạo dữ liệu demo"""
-    if not DATABASE['users']:
-        # Tạo admin
-        admin_id = str(uuid.uuid4())
-        DATABASE['users'][admin_id] = {
-            'id': admin_id,
-            'ten_dang_nhap': 'admin',
-            'mat_khau': hashlib.sha256('admin123'.encode()).hexdigest(),
-            'ho_ten': 'Quản trị viên',
-            'vai_tro': 'admin',
-            'ten_truong': 'Đại học ABC',
-            'created_at': datetime.now().isoformat()
+# Models
+class User(db.Model):
+    __tablename__ = 'users'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    ten_dang_nhap = db.Column(db.String(50), unique=True, nullable=False)
+    mat_khau = db.Column(db.String(64), nullable=False)
+    ho_ten = db.Column(db.String(100), nullable=False)
+    vai_tro = db.Column(db.String(20), nullable=False, default='hoc_sinh')
+    ten_truong = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    rooms_created = db.relationship('PhongThi', backref='giao_vien', lazy=True, foreign_keys='PhongThi.giao_vien_id')
+    violations = db.relationship('ViPham', backref='hoc_sinh', lazy=True, foreign_keys='ViPham.hoc_sinh_id')
+    
+    def to_dict(self, include_password=False):
+        data = {
+            'id': self.id,
+            'ten_dang_nhap': self.ten_dang_nhap,
+            'ho_ten': self.ho_ten,
+            'vai_tro': self.vai_tro,
+            'ten_truong': self.ten_truong,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
-        
-        # Tạo giáo viên
-        teacher_id = str(uuid.uuid4())
-        DATABASE['users'][teacher_id] = {
-            'id': teacher_id,
-            'ten_dang_nhap': 'gv1',
-            'mat_khau': hashlib.sha256('123456'.encode()).hexdigest(),
-            'ho_ten': 'Nguyễn Văn A',
-            'vai_tro': 'giao_vien',
-            'ten_truong': 'Đại học ABC',
-            'created_at': datetime.now().isoformat()
+        if include_password:
+            data['mat_khau'] = self.mat_khau
+        return data
+
+class PhongThi(db.Model):
+    __tablename__ = 'phong_thi'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    ma_phong = db.Column(db.String(6), unique=True, nullable=False)
+    ten_phien = db.Column(db.String(200), nullable=False)
+    giao_vien_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    ten_truong = db.Column(db.String(100), nullable=False)
+    dang_hoat_dong = db.Column(db.Boolean, default=True)
+    qr_base64 = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    closed_at = db.Column(db.DateTime)
+    max_students = db.Column(db.Integer, default=50)
+    settings = db.Column(db.JSON, default={})
+    
+    # Relationships
+    students = db.relationship('User', secondary='phong_hoc_sinh', lazy='dynamic',
+                              backref=db.backref('rooms', lazy='dynamic'))
+    violations = db.relationship('ViPham', backref='phong', lazy=True)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'ma_phong': self.ma_phong,
+            'ten_phien': self.ten_phien,
+            'ten_giao_vien': db.session.get(User, self.giao_vien_id).ho_ten if self.giao_vien_id else None,
+            'giao_vien_id': self.giao_vien_id,
+            'ten_truong': self.ten_truong,
+            'dang_hoat_dong': self.dang_hoat_dong,
+            'qr_base64': self.qr_base64,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'closed_at': self.closed_at.isoformat() if self.closed_at else None,
         }
-        
-        # Tạo học sinh mẫu
-        students = [
-            ('hs001', 'Trần Văn B'),
-            ('hs002', 'Lê Thị C'),
-            ('hs003', 'Phạm Văn D'),
-            ('hs004', 'Hoàng Thị E'),
-        ]
-        for username, fullname in students:
-            student_id = str(uuid.uuid4())
-            DATABASE['users'][student_id] = {
-                'id': student_id,
-                'ten_dang_nhap': username,
-                'mat_khau': hashlib.sha256('123456'.encode()).hexdigest(),
-                'ho_ten': fullname,
-                'vai_tro': 'hoc_sinh',
-                'ten_truong': 'Đại học ABC',
-                'created_at': datetime.now().isoformat()
-            }
+
+class PhongHocSinh(db.Model):
+    __tablename__ = 'phong_hoc_sinh'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    phong_id = db.Column(db.String(36), db.ForeignKey('phong_thi.id'), nullable=False)
+    hoc_sinh_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    left_at = db.Column(db.DateTime)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    phong = db.relationship('PhongThi', backref=db.backref('phong_hoc_sinh', lazy='dynamic'))
+    hoc_sinh = db.relationship('User', backref=db.backref('phong_hoc_sinh', lazy='dynamic'))
+
+class ViPham(db.Model):
+    __tablename__ = 'vi_pham'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    phien_id = db.Column(db.String(36), db.ForeignKey('phong_thi.id'), nullable=False)
+    hoc_sinh_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    loai_bang_chung = db.Column(db.String(20), default='image')
+    ly_do = db.Column(db.String(100), nullable=False)
+    diem = db.Column(db.Float, default=0)
+    thoi_gian = db.Column(db.DateTime, default=datetime.utcnow)
+    kich_thuoc_byte = db.Column(db.Integer, default=0)
+    du_lieu_path = db.Column(db.LargeBinary)
+    resolved = db.Column(db.Boolean, default=False)
+    resolved_at = db.Column(db.DateTime)
+    resolved_by = db.Column(db.String(36), db.ForeignKey('users.id'))
+    notes = db.Column(db.Text)
+    
+    # Relationship
+    resolver = db.relationship('User', foreign_keys=[resolved_by])
+    
+    def to_dict(self):
+        hs = db.session.get(User, self.hoc_sinh_id)
+        return {
+            'id': self.id,
+            'phien_id': self.phien_id,
+            'hoc_sinh_id': self.hoc_sinh_id,
+            'ho_ten': hs.ho_ten if hs else 'Unknown',
+            'loai_bang_chung': self.loai_bang_chung,
+            'ly_do': self.ly_do,
+            'diem': self.diem,
+            'thoi_gian': self.thoi_gian.isoformat() if self.thoi_gian else None,
+            'kich_thuoc_byte': self.kich_thuoc_byte,
+            'resolved': self.resolved,
+        }
 
 # Decorator kiểm tra quyền
 def role_required(allowed_roles: List[str]):
@@ -102,8 +196,8 @@ def role_required(allowed_roles: List[str]):
         @jwt_required()
         def decorated_function(*args, **kwargs):
             current_user_id = get_jwt_identity()
-            user = DATABASE['users'].get(current_user_id)
-            if not user or user.get('vai_tro') not in allowed_roles:
+            user = db.session.get(User, current_user_id)
+            if not user or user.vai_tro not in allowed_roles:
                 return jsonify({'loi': 'Không có quyền truy cập'}), 403
             return f(*args, **kwargs)
         return decorated_function
@@ -124,7 +218,43 @@ def generate_qr_code(data: str):
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode()
 
+def hash_password(password: str) -> str:
+    """Băm mật khẩu"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def validate_password(password: str) -> bool:
+    """Kiểm tra độ mạnh mật khẩu"""
+    if len(password) < 6:
+        return False
+    return True
+
 # API Routes
+@app.route('/api/test', methods=['GET', 'OPTIONS'])
+def test_cors():
+    """Test CORS configuration"""
+    if request.method == 'OPTIONS':
+        return make_response('', 200)
+    return jsonify({
+        'message': 'CORS is working!',
+        'status': 'success',
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    try:
+        db.session.execute(text('SELECT 1'))
+        db_status = 'healthy'
+    except Exception as e:
+        db_status = f'unhealthy: {str(e)}'
+    
+    return jsonify({
+        'status': 'healthy',
+        'database': db_status,
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
 @app.route('/api/dang_nhap', methods=['POST', 'OPTIONS'])
 def dang_nhap():
     """Đăng nhập"""
@@ -133,6 +263,9 @@ def dang_nhap():
     
     try:
         data = request.get_json()
+        if not data:
+            return jsonify({'loi': 'Dữ liệu không hợp lệ'}), 400
+        
         ten_dang_nhap = data.get('ten_dang_nhap')
         mat_khau = data.get('mat_khau')
         
@@ -140,38 +273,33 @@ def dang_nhap():
             return jsonify({'loi': 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu'}), 400
         
         # Tìm user
-        user = None
-        for uid, u in DATABASE['users'].items():
-            if u['ten_dang_nhap'] == ten_dang_nhap:
-                user = u
-                break
+        user = User.query.filter_by(ten_dang_nhap=ten_dang_nhap).first()
         
         if not user:
             return jsonify({'loi': 'Tài khoản không tồn tại'}), 401
         
         # Kiểm tra mật khẩu
-        hashed_password = hashlib.sha256(mat_khau.encode()).hexdigest()
-        if user['mat_khau'] != hashed_password:
+        hashed_password = hash_password(mat_khau)
+        if user.mat_khau != hashed_password:
             return jsonify({'loi': 'Mật khẩu không đúng'}), 401
         
+        # Cập nhật last_login
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+        
         # Tạo token
-        access_token = create_access_token(identity=user['id'])
+        access_token = create_access_token(identity=user.id)
         
-        # Lưu session
-        session_id = str(uuid.uuid4())
-        DATABASE['sessions'][session_id] = {
-            'user_id': user['id'],
+        response = jsonify({
             'token': access_token,
-            'created_at': datetime.now().isoformat()
-        }
-        
-        # Trả về thông tin user (không bao gồm mật khẩu)
-        user_info = {k: v for k, v in user.items() if k != 'mat_khau'}
-        return jsonify({
-            'token': access_token,
-            'user': user_info,
+            'user': user.to_dict(),
             'message': 'Đăng nhập thành công'
-        }), 200
+        })
+        
+        # Set cookie nếu cần
+        set_access_cookies(response, access_token)
+        
+        return response, 200
         
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -195,30 +323,33 @@ def dang_ky():
         if not all([ten_dang_nhap, mat_khau, ho_ten, ten_truong]):
             return jsonify({'loi': 'Vui lòng điền đầy đủ thông tin'}), 400
         
+        if not validate_password(mat_khau):
+            return jsonify({'loi': 'Mật khẩu phải có ít nhất 6 ký tự'}), 400
+        
         # Kiểm tra tồn tại
-        for u in DATABASE['users'].values():
-            if u['ten_dang_nhap'] == ten_dang_nhap:
-                return jsonify({'loi': 'Tên đăng nhập đã tồn tại'}), 400
+        if User.query.filter_by(ten_dang_nhap=ten_dang_nhap).first():
+            return jsonify({'loi': 'Tên đăng nhập đã tồn tại'}), 400
         
         # Tạo user mới
-        user_id = str(uuid.uuid4())
-        DATABASE['users'][user_id] = {
-            'id': user_id,
-            'ten_dang_nhap': ten_dang_nhap,
-            'mat_khau': hashlib.sha256(mat_khau.encode()).hexdigest(),
-            'ho_ten': ho_ten,
-            'vai_tro': vai_tro,
-            'ten_truong': ten_truong,
-            'created_at': datetime.now().isoformat()
-        }
+        user = User(
+            ten_dang_nhap=ten_dang_nhap,
+            mat_khau=hash_password(mat_khau),
+            ho_ten=ho_ten,
+            vai_tro=vai_tro,
+            ten_truong=ten_truong
+        )
+        
+        db.session.add(user)
+        db.session.commit()
         
         return jsonify({
             'message': 'Đăng ký thành công',
-            'user_id': user_id
+            'user_id': user.id
         }), 201
         
     except Exception as e:
         logger.error(f"Register error: {str(e)}")
+        db.session.rollback()
         return jsonify({'loi': f'Lỗi đăng ký: {str(e)}'}), 500
 
 @app.route('/api/dang_ky_hang_loat', methods=['POST', 'OPTIONS'])
@@ -237,8 +368,8 @@ def dang_ky_hang_loat():
             return jsonify({'loi': 'Danh sách trống'}), 400
         
         current_user_id = get_jwt_identity()
-        current_user = DATABASE['users'].get(current_user_id)
-        ten_truong = current_user.get('ten_truong')
+        current_user = db.session.get(User, current_user_id)
+        ten_truong = current_user.ten_truong
         
         success = []
         failed = []
@@ -256,8 +387,7 @@ def dang_ky_hang_loat():
                 continue
             
             # Kiểm tra tồn tại
-            exists = any(u['ten_dang_nhap'] == ten_dang_nhap for u in DATABASE['users'].values())
-            if exists:
+            if User.query.filter_by(ten_dang_nhap=ten_dang_nhap).first():
                 failed.append({
                     'ten_dang_nhap': ten_dang_nhap,
                     'ly_do': 'Tên đăng nhập đã tồn tại'
@@ -265,22 +395,22 @@ def dang_ky_hang_loat():
                 continue
             
             # Tạo user
-            user_id = str(uuid.uuid4())
-            DATABASE['users'][user_id] = {
-                'id': user_id,
-                'ten_dang_nhap': ten_dang_nhap,
-                'mat_khau': hashlib.sha256(mat_khau.encode()).hexdigest(),
-                'ho_ten': ho_ten,
-                'vai_tro': vai_tro,
-                'ten_truong': ten_truong,
-                'created_at': datetime.now().isoformat()
-            }
+            user = User(
+                ten_dang_nhap=ten_dang_nhap,
+                mat_khau=hash_password(mat_khau),
+                ho_ten=ho_ten,
+                vai_tro=vai_tro,
+                ten_truong=ten_truong
+            )
+            db.session.add(user)
             
             success.append({
                 'ten_dang_nhap': ten_dang_nhap,
                 'ho_ten': ho_ten,
                 'mat_khau': mat_khau
             })
+        
+        db.session.commit()
         
         return jsonify({
             'thanh_cong': success,
@@ -290,6 +420,7 @@ def dang_ky_hang_loat():
         
     except Exception as e:
         logger.error(f"Batch register error: {str(e)}")
+        db.session.rollback()
         return jsonify({'loi': f'Lỗi đăng ký hàng loạt: {str(e)}'}), 500
 
 @app.route('/api/tao_phong', methods=['POST', 'OPTIONS'])
@@ -304,32 +435,32 @@ def tao_phong():
         ten_phien = data.get('ten_phien', 'Phiên thi không tên')
         
         current_user_id = get_jwt_identity()
-        current_user = DATABASE['users'].get(current_user_id)
+        current_user = db.session.get(User, current_user_id)
         
-        room_id = str(uuid.uuid4())
         ma_phong = generate_room_code()
         
         # Tạo QR code với thông tin phòng
-        qr_data = f"VIRTU:http://localhost:5000/phong/{ma_phong}"
+        qr_data = f"VIRTU:{ma_phong}"
         qr_base64 = generate_qr_code(qr_data)
         
-        phong = {
-            'id': room_id,
-            'ma_phong': ma_phong,
-            'ten_phien': ten_phien,
-            'ten_giao_vien': current_user['ho_ten'],
-            'giao_vien_id': current_user_id,
-            'ten_truong': current_user['ten_truong'],
-            'dang_hoat_dong': True,
-            'qr_base64': qr_base64,
-            'created_at': datetime.now().isoformat(),
-            'hoc_sinh': []
-        }
+        phong = PhongThi(
+            ma_phong=ma_phong,
+            ten_phien=ten_phien,
+            giao_vien_id=current_user_id,
+            ten_truong=current_user.ten_truong,
+            qr_base64=qr_base64,
+            settings={
+                'auto_start': False,
+                'require_webcam': True,
+                'allow_mobile': True
+            }
+        )
         
-        DATABASE['phong_thi'][room_id] = phong
+        db.session.add(phong)
+        db.session.commit()
         
         return jsonify({
-            'id': room_id,
+            'id': phong.id,
             'ma_phong': ma_phong,
             'qr_base64': qr_base64,
             'message': 'Tạo phòng thi thành công'
@@ -337,6 +468,7 @@ def tao_phong():
         
     except Exception as e:
         logger.error(f"Create room error: {str(e)}")
+        db.session.rollback()
         return jsonify({'loi': f'Lỗi tạo phòng: {str(e)}'}), 500
 
 @app.route('/api/dong_phong', methods=['POST', 'OPTIONS'])
@@ -350,20 +482,23 @@ def dong_phong():
         data = request.get_json()
         phien_id = data.get('phien_id')
         
-        if not phien_id or phien_id not in DATABASE['phong_thi']:
+        if not phien_id:
+            return jsonify({'loi': 'Thiếu ID phòng thi'}), 400
+        
+        phong = db.session.get(PhongThi, phien_id)
+        if not phong:
             return jsonify({'loi': 'Phòng thi không tồn tại'}), 404
         
         current_user_id = get_jwt_identity()
-        phong = DATABASE['phong_thi'][phien_id]
+        current_user = db.session.get(User, current_user_id)
         
         # Kiểm tra quyền
-        if phong['giao_vien_id'] != current_user_id:
-            current_user = DATABASE['users'].get(current_user_id)
-            if current_user.get('vai_tro') != 'admin':
-                return jsonify({'loi': 'Không có quyền đóng phòng này'}), 403
+        if phong.giao_vien_id != current_user_id and current_user.vai_tro != 'admin':
+            return jsonify({'loi': 'Không có quyền đóng phòng này'}), 403
         
-        phong['dang_hoat_dong'] = False
-        phong['closed_at'] = datetime.now().isoformat()
+        phong.dang_hoat_dong = False
+        phong.closed_at = datetime.utcnow()
+        db.session.commit()
         
         return jsonify({
             'message': 'Đã đóng phòng thi thành công'
@@ -371,6 +506,7 @@ def dong_phong():
         
     except Exception as e:
         logger.error(f"Close room error: {str(e)}")
+        db.session.rollback()
         return jsonify({'loi': f'Lỗi đóng phòng: {str(e)}'}), 500
 
 @app.route('/api/phong/<ma_phong>', methods=['GET', 'OPTIONS'])
@@ -381,51 +517,52 @@ def thong_tin_phong(ma_phong):
         return make_response('', 200)
     
     try:
-        # Tìm phòng theo mã
-        phong = None
-        for p in DATABASE['phong_thi'].values():
-            if p['ma_phong'] == ma_phong:
-                phong = p
-                break
-        
+        phong = PhongThi.query.filter_by(ma_phong=ma_phong).first()
         if not phong:
             return jsonify({'loi': 'Phòng thi không tồn tại'}), 404
         
         current_user_id = get_jwt_identity()
-        current_user = DATABASE['users'].get(current_user_id)
+        current_user = db.session.get(User, current_user_id)
         
         # Kiểm tra quyền
-        if phong['giao_vien_id'] != current_user_id and current_user.get('vai_tro') != 'admin':
+        if phong.giao_vien_id != current_user_id and current_user.vai_tro != 'admin':
             return jsonify({'loi': 'Không có quyền xem phòng này'}), 403
         
         # Lấy danh sách học sinh trong phòng
+        phong_hoc_sinh = PhongHocSinh.query.filter_by(
+            phong_id=phong.id,
+            is_active=True
+        ).all()
+        
         hoc_sinh_list = []
-        for hs_id in phong.get('hoc_sinh', []):
-            if hs_id in DATABASE['users']:
-                hs = DATABASE['users'][hs_id]
-                # Kiểm tra trạng thái
-                trang_thai = 'normal'
-                diem = 0
-                
+        for phs in phong_hoc_sinh:
+            hs = db.session.get(User, phs.hoc_sinh_id)
+            if hs:
                 # Tính điểm từ vi phạm
-                for vp in DATABASE['vi_pham'].values():
-                    if vp['phien_id'] == phong['id'] and vp['hoc_sinh_id'] == hs_id:
-                        diem += vp.get('diem', 0)
-                        if diem >= 10:
-                            trang_thai = 'cheating'
-                        elif diem >= 5:
-                            trang_thai = 'suspicious'
+                violations = ViPham.query.filter_by(
+                    phien_id=phong.id,
+                    hoc_sinh_id=hs.id
+                ).all()
+                
+                diem = sum(v.diem for v in violations)
+                
+                trang_thai = 'normal'
+                if diem >= 10:
+                    trang_thai = 'cheating'
+                elif diem >= 5:
+                    trang_thai = 'suspicious'
                 
                 hoc_sinh_list.append({
-                    'hoc_sinh_id': hs_id,
-                    'ho_ten': hs['ho_ten'],
+                    'hoc_sinh_id': hs.id,
+                    'ho_ten': hs.ho_ten,
                     'trang_thai': trang_thai,
                     'diem': diem,
-                    'con_ket_noi': True  # Mock, trong thực tế kiểm tra từ WebSocket
+                    'con_ket_noi': True,
+                    'joined_at': phs.joined_at.isoformat() if phs.joined_at else None
                 })
         
         return jsonify({
-            'phong': phong,
+            'phong': phong.to_dict(),
             'hoc_sinh': hoc_sinh_list
         }), 200
         
@@ -442,20 +579,23 @@ def phong_cua_truong():
     
     try:
         current_user_id = get_jwt_identity()
-        current_user = DATABASE['users'].get(current_user_id)
+        current_user = db.session.get(User, current_user_id)
         
         if not current_user:
             return jsonify({'loi': 'Người dùng không tồn tại'}), 404
         
         # Lấy phòng theo trường
-        rooms = []
-        for p in DATABASE['phong_thi'].values():
-            if p['ten_truong'] == current_user['ten_truong']:
-                # Nếu là admin thì xem được tất cả, giáo viên chỉ xem được phòng của mình
-                if current_user['vai_tro'] == 'admin' or p['giao_vien_id'] == current_user_id:
-                    rooms.append(p)
+        query = PhongThi.query.filter_by(ten_truong=current_user.ten_truong)
         
-        return jsonify({'phong': rooms}), 200
+        # Nếu không phải admin, chỉ lấy phòng của mình
+        if current_user.vai_tro != 'admin':
+            query = query.filter_by(giao_vien_id=current_user_id)
+        
+        rooms = query.order_by(PhongThi.created_at.desc()).all()
+        
+        return jsonify({
+            'phong': [room.to_dict() for room in rooms]
+        }), 200
         
     except Exception as e:
         logger.error(f"Get school rooms error: {str(e)}")
@@ -469,34 +609,24 @@ def vi_pham_theo_phong(phien_id):
         return make_response('', 200)
     
     try:
-        if phien_id not in DATABASE['phong_thi']:
+        phong = db.session.get(PhongThi, phien_id)
+        if not phong:
             return jsonify({'loi': 'Phòng thi không tồn tại'}), 404
         
         current_user_id = get_jwt_identity()
-        current_user = DATABASE['users'].get(current_user_id)
-        phong = DATABASE['phong_thi'][phien_id]
+        current_user = db.session.get(User, current_user_id)
         
         # Kiểm tra quyền
-        if phong['giao_vien_id'] != current_user_id and current_user.get('vai_tro') != 'admin':
+        if phong.giao_vien_id != current_user_id and current_user.vai_tro != 'admin':
             return jsonify({'loi': 'Không có quyền xem vi phạm'}), 403
         
-        violations = []
-        for vp in DATABASE['vi_pham'].values():
-            if vp['phien_id'] == phien_id:
-                # Lấy thông tin học sinh
-                hs = DATABASE['users'].get(vp['hoc_sinh_id'])
-                violations.append({
-                    'id': vp['id'],
-                    'hoc_sinh_id': vp['hoc_sinh_id'],
-                    'ho_ten': hs['ho_ten'] if hs else 'Unknown',
-                    'loai_bang_chung': vp.get('loai_bang_chung', 'image'),
-                    'ly_do': vp.get('ly_do', 'Vi phạm'),
-                    'diem': vp.get('diem', 0),
-                    'thoi_gian': vp.get('thoi_gian', datetime.now().isoformat()),
-                    'kich_thuoc_byte': vp.get('kich_thuoc_byte', 0)
-                })
+        violations = ViPham.query.filter_by(phien_id=phien_id).order_by(
+            ViPham.thoi_gian.desc()
+        ).all()
         
-        return jsonify({'vi_pham': violations}), 200
+        return jsonify({
+            'vi_pham': [v.to_dict() for v in violations]
+        }), 200
         
     except Exception as e:
         logger.error(f"Get violations error: {str(e)}")
@@ -510,23 +640,25 @@ def vi_pham_theo_hoc_sinh(phien_id, hoc_sinh_id):
         return make_response('', 200)
     
     try:
-        if phien_id not in DATABASE['phong_thi']:
+        phong = db.session.get(PhongThi, phien_id)
+        if not phong:
             return jsonify({'loi': 'Phòng thi không tồn tại'}), 404
         
         current_user_id = get_jwt_identity()
-        current_user = DATABASE['users'].get(current_user_id)
-        phong = DATABASE['phong_thi'][phien_id]
+        current_user = db.session.get(User, current_user_id)
         
         # Kiểm tra quyền
-        if phong['giao_vien_id'] != current_user_id and current_user.get('vai_tro') != 'admin':
+        if phong.giao_vien_id != current_user_id and current_user.vai_tro != 'admin':
             return jsonify({'loi': 'Không có quyền xem vi phạm'}), 403
         
-        violations = []
-        for vp in DATABASE['vi_pham'].values():
-            if vp['phien_id'] == phien_id and vp['hoc_sinh_id'] == hoc_sinh_id:
-                violations.append(vp)
+        violations = ViPham.query.filter_by(
+            phien_id=phien_id,
+            hoc_sinh_id=hoc_sinh_id
+        ).order_by(ViPham.thoi_gian.desc()).all()
         
-        return jsonify({'vi_pham': violations}), 200
+        return jsonify({
+            'vi_pham': [v.to_dict() for v in violations]
+        }), 200
         
     except Exception as e:
         logger.error(f"Get student violations error: {str(e)}")
@@ -540,109 +672,54 @@ def tai_du_lieu_bang_chung(vi_pham_id):
         return make_response('', 200)
     
     try:
-        if vi_pham_id not in DATABASE['vi_pham']:
+        vp = db.session.get(ViPham, vi_pham_id)
+        if not vp:
             return jsonify({'loi': 'Vi phạm không tồn tại'}), 404
         
-        vp = DATABASE['vi_pham'][vi_pham_id]
-        phong = DATABASE['phong_thi'].get(vp['phien_id'])
-        
+        phong = db.session.get(PhongThi, vp.phien_id)
         if not phong:
             return jsonify({'loi': 'Phòng thi không tồn tại'}), 404
         
         current_user_id = get_jwt_identity()
-        current_user = DATABASE['users'].get(current_user_id)
+        current_user = db.session.get(User, current_user_id)
         
         # Kiểm tra quyền
-        if phong['giao_vien_id'] != current_user_id and current_user.get('vai_tro') != 'admin':
+        if phong.giao_vien_id != current_user_id and current_user.vai_tro != 'admin':
             return jsonify({'loi': 'Không có quyền xem bằng chứng'}), 403
         
-        # Tạo dữ liệu demo
-        # Trong thực tế, dữ liệu này được lưu trên server hoặc cloud storage
-        if vp.get('loai_bang_chung') == 'video':
-            # Tạo video demo (màu đen)
-            from PIL import Image
-            import numpy as np
+        # Nếu chưa có dữ liệu, tạo demo
+        if not vp.du_lieu_path:
+            # Tạo ảnh demo
+            img = Image.new('RGB', (800, 600), color=(20, 20, 30))
+            draw = ImageDraw.Draw(img)
             
-            # Tạo ảnh demo nếu chưa có
-            if not vp.get('du_lieu_path'):
-                # Tạo ảnh đơn giản với text
-                img = Image.new('RGB', (800, 600), color='black')
-                from PIL import ImageDraw, ImageFont
-                draw = ImageDraw.Draw(img)
-                try:
-                    font = ImageFont.truetype("arial.ttf", 30)
-                except:
-                    font = ImageFont.load_default()
-                draw.text((300, 280), f"VP: {vp['id'][:8]}", fill='white', font=font)
-                draw.text((300, 320), f"HS: {vp['hoc_sinh_id'][:8]}", fill='white', font=font)
-                
-                img_byte_arr = BytesIO()
-                img.save(img_byte_arr, format='PNG')
-                vp['du_lieu_path'] = img_byte_arr.getvalue()
-                vp['kich_thuoc_byte'] = len(vp['du_lieu_path'])
+            # Vẽ khung vi phạm
+            draw.rectangle([200, 150, 600, 450], outline=(255, 84, 112), width=3)
+            draw.text((250, 200), f"VI PHAM: {vp.id[:8]}", fill=(255, 84, 112))
+            draw.text((250, 240), f"HS: {vp.hoc_sinh_id[:8]}", fill=(255, 201, 74))
+            draw.text((250, 280), f"LY DO: {vp.ly_do}", fill=(255, 255, 255))
+            draw.text((250, 320), f"DIEM: {vp.diem}", fill=(255, 84, 112))
+            draw.text((250, 360), f"THOI GIAN: {vp.thoi_gian.isoformat() if vp.thoi_gian else 'N/A'}", fill=(200, 200, 200))
+            
+            img_byte_arr = BytesIO()
+            img.save(img_byte_arr, format='PNG')
+            vp.du_lieu_path = img_byte_arr.getvalue()
+            vp.kich_thuoc_byte = len(vp.du_lieu_path)
+            db.session.commit()
         
         # Trả về dữ liệu
-        if vp.get('du_lieu_path'):
-            return send_file(
-                BytesIO(vp['du_lieu_path']),
-                mimetype='image/png' if vp.get('loai_bang_chung') == 'image' else 'video/mp4',
-                as_attachment=False
-            )
-        else:
-            return jsonify({'loi': 'Không tìm thấy dữ liệu bằng chứng'}), 404
+        mimetype = 'image/png' if vp.loai_bang_chung == 'image' else 'video/mp4'
+        return send_file(
+            BytesIO(vp.du_lieu_path),
+            mimetype=mimetype,
+            as_attachment=False
+        ), 200
         
     except Exception as e:
         logger.error(f"Download evidence error: {str(e)}")
         return jsonify({'loi': f'Lỗi tải bằng chứng: {str(e)}'}), 500
 
-# Route test CORS
-@app.route('/api/test', methods=['GET', 'OPTIONS'])
-def test_cors():
-    """Test CORS configuration"""
-    if request.method == 'OPTIONS':
-        return make_response('', 200)
-    return jsonify({'message': 'CORS is working!', 'status': 'success'}), 200
-
-# Error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({'loi': 'Không tìm thấy endpoint'}), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    logger.error(f"Internal server error: {str(error)}")
-    return jsonify({'loi': 'Lỗi máy chủ nội bộ'}), 500
-
-# Khởi tạo dữ liệu demo
-with app.app_context():
-    init_demo_data()
-    # Thêm dữ liệu vi phạm mẫu
-    phong_id = None
-    for p_id, p in DATABASE['phong_thi'].items():
-        if p['ten_phien'] == 'Phiên thi không tên':
-            phong_id = p_id
-            break
-    
-    if phong_id:
-        # Thêm học sinh vào phòng
-        phong = DATABASE['phong_thi'][phong_id]
-        student_ids = [uid for uid, u in DATABASE['users'].items() if u['vai_tro'] == 'hoc_sinh']
-        phong['hoc_sinh'] = student_ids[:2]  # Thêm 2 học sinh đầu
-        
-        # Tạo vi phạm mẫu
-        for i, hs_id in enumerate(phong['hoc_sinh']):
-            vp_id = str(uuid.uuid4())
-            DATABASE['vi_pham'][vp_id] = {
-                'id': vp_id,
-                'phien_id': phong_id,
-                'hoc_sinh_id': hs_id,
-                'loai_bang_chung': 'image',
-                'ly_do': 'phat_hien_nhieu_nguoi_trong_khung_hinh' if i == 0 else 'diem_rui_ro_vuot_nguong_gian_lan',
-                'diem': 3 + i * 2,
-                'thoi_gian': datetime.now().isoformat(),
-                'kich_thuoc_byte': 20480,
-                'du_lieu_path': None
-            }
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+@app.route('/api/them_vi_pham', methods=['POST', 'OPTIONS'])
+@role_required(['admin', 'giao_vien'])
+def them_vi_pham():
+    """Thêm vi phạm mới (cho WebSocket real-time)
