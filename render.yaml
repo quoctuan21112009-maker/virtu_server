@@ -1,47 +1,16 @@
 services:
-  # Backend API
   - type: web
-    name: virtu-backend
-    runtime: python
-    repo: https://github.com/yourusername/virtu-backend
-    plan: free
-    region: singapore
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
+    name: virtu-server
+    env: python
+    region: singapore          # chọn region gần VN nhất để giảm độ trễ
+    plan: free                 # đổi thành starter/standard nếu cần luôn-online, không sleep
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn may_chu:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
     envVars:
-      - key: FLASK_APP
-        value: app.py
-      - key: FLASK_ENV
-        value: production
-      - key: SECRET_KEY
-        generateValue: true
-      - key: JWT_SECRET_KEY
-        generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: virtu-db
-          property: connectionString
-      - key: CORS_ORIGINS
-        sync: false
-      - key: LOG_LEVEL
-        value: INFO
-
-  # Frontend (nếu deploy cùng)
-  - type: web
-    name: virtu-frontend
-    runtime: static
-    repo: https://github.com/yourusername/virtu-frontend
-    plan: free
-    region: singapore
-    buildCommand: npm run build
-    staticPublishPath: ./build
-    envVars:
-      - key: REACT_APP_API_URL
-        value: https://virtu-backend.onrender.com
-      - key: REACT_APP_WEBSOCKET_URL
-        value: wss://virtu-backend.onrender.com
-
-databases:
-  - name: virtu-db
-    plan: free
-    region: singapore
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ALLOWED_ORIGINS
+        value: "*"              # đổi thành domain frontend thật khi deploy production
+      # - key: SECRET_KEY
+      #   generateValue: true   # bật nếu server dùng SECRET_KEY để ký JWT
+    healthCheckPath: /api/suc_khoe
