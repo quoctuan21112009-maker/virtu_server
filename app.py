@@ -722,4 +722,61 @@ def tai_du_lieu_bang_chung(vi_pham_id):
 @app.route('/api/them_vi_pham', methods=['POST', 'OPTIONS'])
 @role_required(['admin', 'giao_vien'])
 def them_vi_pham():
-    """Thêm vi phạm mới (cho WebSocket real-time)
+    """Thêm vi phạm mới (cho WebSocket real-time)"""
+    if request.method == 'OPTIONS':
+        return make_response('', 200)
+    
+    try:
+        data = request.get_json()
+        
+        phien_id = data.get('phien_id')
+        hoc_sinh_id = data.get('hoc_sinh_id')
+        loai_bang_chung = data.get('loai_bang_chung', 'image')
+        ly_do = data.get('ly_do', 'Vi phạm')
+        diem = data.get('diem', 0)
+        
+        if not phien_id or not hoc_sinh_id:
+            return jsonify({'loi': 'Thiếu thông tin phòng hoặc học sinh'}), 400
+        
+        # Kiểm tra phòng tồn tại
+        phong = db.session.get(PhongThi, phien_id)
+        if not phong:
+            return jsonify({'loi': 'Phòng thi không tồn tại'}), 404
+        
+        # Kiểm tra học sinh tồn tại
+        hoc_sinh = db.session.get(User, hoc_sinh_id)
+        if not hoc_sinh:
+            return jsonify({'loi': 'Học sinh không tồn tại'}), 404
+        
+        # Tạo vi phạm mới
+        vi_pham = ViPham(
+            phien_id=phien_id,
+            hoc_sinh_id=hoc_sinh_id,
+            loai_bang_chung=loai_bang_chung,
+            ly_do=ly_do,
+            diem=diem,
+            thoi_gian=datetime.utcnow()
+        )
+        
+        db.session.add(vi_pham)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Thêm vi phạm thành công',
+            'vi_pham': vi_pham.to_dict()
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"Add violation error: {str(e)}")
+        db.session.rollback()
+        return jsonify({'loi': f'Lỗi thêm vi phạm: {str(e)}'}), 500
+
+# Tạo bảng khi khởi động (không tạo dữ liệu demo)
+@app.before_first_request
+def create_tables():
+    """Tạo bảng nếu chưa tồn tại (không tạo dữ liệu demo)"""
+    db.create_all()
+    logger.info("Database tables created successfully (no demo data)")
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
