@@ -1,0 +1,388 @@
+/* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-void: #07090c;
+  --bg-deep: #0b0f14;
+  --bg-panel: #10151c;
+  --bg-panel-2: #141a22;
+  --line: #1e2630;
+  --line-soft: #171e27;
+  --text-hi: #eef2f6;
+  --text-mid: #8b97a7;
+  --text-dim: #4d5866;
+  --cyan: #22d3ee;
+  --cyan-dim: rgba(34, 211, 238, 0.14);
+  --green: #34e08a;
+  --amber: #ffc94a;
+  --red: #ff5470;
+  --violet: #9b8cff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-void);
+  color: var(--text-hi);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.virtu-root {
+  font-family: 'Sora', sans-serif;
+  background: var(--bg-void);
+  color: var(--text-hi);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.virtu-root .mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* Thêm tất cả animation từ GLOBAL_CSS */
+.virtu-noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(34, 211, 238, 0.06), transparent 40%),
+    radial-gradient(circle at 85% 90%, rgba(155, 140, 255, 0.05), transparent 45%),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0px, rgba(255, 255, 255, 0.012) 1px, transparent 1px, transparent 3px);
+}
+
+.virtu-scan {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 140px;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(34, 211, 238, 0.035), transparent);
+  animation: scanmove 9s linear infinite;
+}
+
+@keyframes scanmove {
+  0% {
+    top: -140px;
+  }
+  100% {
+    top: 100vh;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideL {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseRed {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 84, 112, 0.55), 0 0 18px 2px rgba(255, 84, 112, 0.25) inset;
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 84, 112, 0), 0 0 28px 6px rgba(255, 84, 112, 0.4) inset;
+  }
+}
+
+@keyframes pulseAmber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 201, 74, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 201, 74, 0);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.pop-in {
+  animation: popIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.slide-l {
+  animation: slideL 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #29e0ff, #17b8de);
+  color: #03181c;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 6px 20px -6px rgba(34, 211, 238, 0.55);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0px) scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  filter: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--text-mid);
+  transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--cyan-dim);
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(255, 84, 112, 0.4);
+  color: var(--red);
+  transition: all 0.15s ease;
+}
+
+.btn-danger:hover {
+  background: rgba(255, 84, 112, 0.12);
+  border-color: var(--red);
+}
+
+.card {
+  background: linear-gradient(180deg, var(--bg-panel), var(--bg-panel-2));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.input-dark {
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text-hi);
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-size: 13.5px;
+  width: 100%;
+}
+
+.input-dark::placeholder {
+  color: var(--text-dim);
+}
+
+.input-dark:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px var(--cyan-dim);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #232b36;
+  border-radius: 99px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tile {
+  position: relative;
+  border-radius: 14px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  background: var(--bg-panel);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+}
+
+.tile-normal {
+  border-color: rgba(52, 224, 138, 0.35);
+}
+
+.tile-suspicious {
+  border-color: rgba(255, 201, 74, 0.45);
+  animation: pulseAmber 2.4s ease-in-out infinite;
+}
+
+.tile-cheating {
+  border-color: rgba(255, 84, 112, 0.7);
+  animation: pulseRed 1.15s ease-in-out infinite;
+}
+
+.tile-offline {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.dot-ring {
+  position: relative;
+  width: 8px;
+  height: 8px;
+}
+
+.dot-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 99px;
+  background: currentColor;
+}
+
+.dot-ring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 99px;
+  border: 1px solid currentColor;
+  animation: ring 1.6s ease-out infinite;
+}
+
+.role-pill {
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.progress-track {
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  transform-origin: left;
+  animation: barGrow 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.tab-underline {
+  position: relative;
+}
+
+.tab-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--cyan);
+  transform: scaleX(0);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tab-underline.active::after {
+  transform: scaleX(1);
+}
+
+/* Ensure icons render properly */
+svg {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
