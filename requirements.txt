@@ -1,5 +1,10 @@
-Flask==2.3.3
-Flask-CORS==4.0.0
-requests==2.31.0
-gunicorn==21.2.0
-python-dotenv==1.0.0
+Flask==3.1.3
+flask-cors==5.0.0
+gunicorn==23.0.0
+python-dotenv==1.0.1
+# --- Thêm các thư viện khác mà may_chu.py của bạn đang dùng bên dưới ---
+# Ví dụ nếu bạn dùng database, JWT, xử lý ảnh/video, QR code v.v:
+# PyJWT==2.9.0
+# qrcode==7.4.2
+# Pillow==10.4.0
+# SQLAlchemy==2.0.34
