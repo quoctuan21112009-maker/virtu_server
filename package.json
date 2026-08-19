@@ -4,6 +4,7 @@
     "build": "vite build --outDir static_build"
   },
   "dependencies": {
+    "lucide-react": "^0.x.x",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
