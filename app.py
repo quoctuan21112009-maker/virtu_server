@@ -10,7 +10,7 @@ from functools import wraps
 from typing import Dict, List, Optional, Any
 import logging
 
-from flask import Flask, request, jsonify, send_file, make_response
+from flask import Flask, request, jsonify, send_file, make_response, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required, 
@@ -57,6 +57,56 @@ CORS(app,
      })
 
 # ============================================================
+# ROUTE MẶC ĐỊNH CHO ROOT PATH - FIX LỖI 404
+# ============================================================
+
+@app.route('/', methods=['GET'])
+def index():
+    """Trang chủ - hiển thị thông tin API"""
+    return jsonify({
+        'name': 'VIRTU API Server',
+        'version': '1.0.0',
+        'status': 'running',
+        'endpoints': {
+            'health': '/api/health',
+            'test': '/api/test',
+            'login': '/api/dang_nhap',
+            'register': '/api/dang_ky',
+            'create_room': '/api/tao_phong',
+            'rooms': '/api/phong_cua_truong',
+            'violations': '/api/vi_pham/<phien_id>'
+        },
+        'documentation': 'https://github.com/yourusername/virtu-api',
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+@app.route('/api', methods=['GET'])
+def api_index():
+    """Trang API - hiển thị danh sách endpoints"""
+    return jsonify({
+        'name': 'VIRTU API',
+        'version': '1.0.0',
+        'endpoints': {
+            'GET /': 'API Information',
+            'GET /api': 'API Endpoints List',
+            'GET /api/health': 'Health check',
+            'GET /api/test': 'CORS test',
+            'POST /api/dang_nhap': 'Login',
+            'POST /api/dang_ky': 'Register',
+            'POST /api/dang_ky_hang_loat': 'Batch register (admin/teacher)',
+            'POST /api/tao_phong': 'Create room (admin/teacher)',
+            'POST /api/dong_phong': 'Close room (admin/teacher)',
+            'GET /api/phong/<ma_phong>': 'Get room details',
+            'GET /api/phong_cua_truong': 'Get school rooms',
+            'GET /api/vi_pham/<phien_id>': 'Get room violations',
+            'GET /api/vi_pham/hoc_sinh/<phien_id>/<hoc_sinh_id>': 'Get student violations',
+            'GET /api/vi_pham/<vi_pham_id>/du_lieu': 'Get violation evidence',
+            'POST /api/them_vi_pham': 'Add violation (admin/teacher)'
+        }
+    }), 200
+
+# ============================================================
+
 # DỮ LIỆU LƯU TRONG BỘ NHỚ (RAM) - HOÀN TOÀN TRỐNG
 # ============================================================
 
@@ -674,7 +724,7 @@ def them_vi_pham():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    logger.info(f" Starting Virtu API server on port {port}")
-    logger.info(f" Database is EMPTY - no demo data")
-    logger.info(f" Users: {len(USERS)}, Rooms: {len(PHONG_THI)}, Violations: {len(VI_PHAM)}")
+    logger.info(f"🚀 Starting Virtu API server on port {port}")
+    logger.info(f"📊 Database is EMPTY - no demo data")
+    logger.info(f"💾 Users: {len(USERS)}, Rooms: {len(PHONG_THI)}, Violations: {len(VI_PHAM)}")
     app.run(host='0.0.0.0', port=port, debug=False)
