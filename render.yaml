@@ -1,10 +1,1 @@
-services:
-  - type: web
-    name: virtu-server
-    runtime: docker
-    region: singapore
-    plan: free
 
-    healthCheckPath: /api/suc_khoe
-
-    autoDeploy: true
