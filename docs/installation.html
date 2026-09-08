@@ -29,7 +29,7 @@
       <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden">
         <thead style="background:#f7fbff;border-bottom:1px solid #eef6ff"><tr><th style="padding:14px 18px;text-align:left">Hệ điều hành</th><th style="padding:14px 18px;text-align:left">Phiên bản</th><th style="padding:14px 18px;text-align:left">Tải về</th></tr></thead>
         <tbody>
-          <tr><td style="padding:12px 18px">Windows (x64)</td><td style="padding:12px 18px">v1.0.0</td><td style="padding:12px 18px"><a class="btn primary" href="https://github.com/quoctuan21112009-maker/virtu_server/releases/download/v1/VirtuSetup.exe" target="_blank" rel="noopener">Tải .exe</a></td></tr>
+          <tr><td style="padding:12px 18px">Windows (x64)</td><td style="padding:12px 18px">v1.0.0</td><td style="padding:12px 18px"><a class="btn primary" href="https://github.com/quoctuan21112009-maker/virtu_server/releases/download/v1/VirtuSetup.exe" target="_blank" rel="noopener">Tải .exe</a> &nbsp; <a href="CHECKSUMS.txt" class="btn ghost">SHA256</a></td></tr>
           <tr><td style="padding:12px 18px">Ubuntu / Debian</td><td style="padding:12px 18px">tar.gz</td><td style="padding:12px 18px"><em>Coming soon</em></td></tr>
           <tr><td style="padding:12px 18px">macOS</td><td style="padding:12px 18px">pkg</td><td style="padding:12px 18px"><em>Coming soon</em></td></tr>
         </tbody>
@@ -40,6 +40,7 @@
       <h2>Hướng dẫn nhanh (Client)</h2>
       <ol>
         <li>Tải file installer cho Windows và chạy: <code>VirtuSetup.exe</code></li>
+        <li>Kiểm tra SHA256: tải file <a href="CHECKSUMS.txt">CHECKSUMS.txt</a> và so sánh với tập tin vừa tải.</li>
         <li>Cài đặt Python 3.9+ cho các máy chạy client nếu cần.</li>
         <li>Nếu dùng mã nguồn: <code>python -m pip install -r requirements.txt --break-system-packages</code></li>
         <li>Khởi động client: <code>python main.py</code></li>
@@ -47,8 +48,10 @@
     </section>
 
     <section style="margin-top:22px">
-      <h2>Xác thực file (tùy chọn)</h2>
-      <p>Chúng tôi khuyến nghị kiểm tra checksum của installer. (Chưa có tập tin checksum cho bản này.)</p>
+      <h2>Xác thực file</h2>
+      <p>SHA256 chính thức (VirtuSetup.exe):</p>
+      <pre style="background:#f7fbff;padding:10px;border-radius:6px;border:1px solid #eef6ff">0d2455a96ed92a80d447773f3166bbba75c8e057ff7a025672648dcfd5a0bc07  VirtuSetup.exe</pre>
+      <p>Hướng dẫn xác thực: sử dụng <code>sha256sum</code> hoặc PowerShell <code>Get-FileHash</code>.</p>
     </section>
 
   </main>

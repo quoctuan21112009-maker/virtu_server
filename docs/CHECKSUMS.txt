@@ -1,0 +1,19 @@
+# Checksums and verification
+
+This file contains guidance for verifying downloaded installers.
+
+SHA256 for VirtuSetup.exe (official release):
+
+0d2455a96ed92a80d447773f3166bbba75c8e057ff7a025672648dcfd5a0bc07  VirtuSetup.exe
+
+How to verify locally
+
+Windows (PowerShell):
+
+  Get-FileHash .\VirtuSetup.exe -Algorithm SHA256 | Format-List
+
+Linux / macOS:
+
+  sha256sum VirtuSetup.exe
+
+When new releases are published we will update this file and provide detached signatures where available.
