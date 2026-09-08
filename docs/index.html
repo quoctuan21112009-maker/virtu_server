@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Virtu — Tài liệu</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="container">
+      <div class="brand">
+        <img src="/logo.png" alt="Virtu logo" class="logo">
+        <span class="title">Virtu</span>
+      </div>
+      <nav class="nav">
+        <a href="/">Trang chủ</a>
+        <a href="/docs/">Tài liệu</a>
+        <a href="installation.html">Tải xuống & Cài đặt</a>
+        <a href="#support">Hỗ trợ</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="hero-doc">
+    <div class="container">
+      <div class="left">
+        <h1>Virtu — Hệ thống Giám sát Chống Gian lận Thi cử</h1>
+        <p class="lead">Giám sát theo sự kiện — Bảo mật End-to-End — Chạy inference tại máy trạm (edge).</p>
+
+        <div class="cta-row">
+          <a class="btn primary" href="https://github.com/quoctuan21112009-maker/virtu_server/releases/download/v1/VirtuSetup.exe" target="_blank" rel="noopener">Tải Virtu Client (Windows)</a>
+          <a class="btn ghost" href="installation.html">Hướng dẫn cài đặt</a>
+        </div>
+
+        <div class="features">
+          <article>
+            <h3>Giám sát hướng sự kiện</h3>
+            <p>Không stream liên tục — chỉ gửi ảnh/video khi phát sinh bằng chứng, tiết kiệm băng thông.</p>
+          </article>
+          <article>
+            <h3>Bảo mật tối đa</h3>
+            <p>Bằng chứng được mã hóa AES (Fernet) và ký số; engine nạp trực tiếp vào RAM.</p>
+          </article>
+          <article>
+            <h3>Edge AI</h3>
+            <p>Inference chạy tại client bằng MediaPipe + bộ đặc trưng 63 chiều.</p>
+          </article>
+        </div>
+      </div>
+      <div class="right">
+        <img src="/logo.png" alt="logo" class="hero-logo-big">
+      </div>
+    </div>
+  </main>
+
+  <section class="docs container">
+    <h2>Tài liệu nhanh</h2>
+    <ul>
+      <li><a href="installation.html">Cài đặt & Tải xuống</a></li>
+      <li><a href="#architecture">Kiến trúc & Bảo mật</a></li>
+      <li><a href="#support">Hỗ trợ</a></li>
+    </ul>
+
+    <h3 id="architecture">Kiến trúc tóm tắt</h3>
+    <p>Client (PyQt5) chạy inference cục bộ; Server (Flask + Gevent + Socket.IO) xử lý metadata và lưu bằng chứng đã mã hóa.</p>
+
+    <h3 id="support">Hỗ trợ</h3>
+    <p>Email: <a href="mailto:quoctuan21112009@gmail.com">quoctuan21112009@gmail.com</a></p>
+  </section>
+
+  <footer class="foot">
+    <div class="container">
+      <div>© 2026 Virtu · DOI 10.5281/zenodo.21836684</div>
+      <div>Python 3.9+ · MediaPipe 0.10.13</div>
+    </div>
+  </footer>
+</body>
+</html>

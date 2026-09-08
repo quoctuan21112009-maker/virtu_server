@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Virtu — Cài đặt & Tải xuống</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="container">
+      <div class="brand">
+        <img src="/logo.png" alt="Virtu logo" class="logo">
+        <span class="title">Virtu</span>
+      </div>
+      <nav class="nav">
+        <a href="/">Trang chủ</a>
+        <a href="index.html">Tài liệu</a>
+        <a href="installation.html">Tải xuống</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding:36px 28px">
+    <h1>Tải xuống & Cài đặt</h1>
+    <p class="lead">Tải trình cài đặt chính thức cho Windows hoặc làm theo hướng dẫn cài đặt cho Linux / macOS.</p>
+
+    <section class="downloads" style="margin-top:18px">
+      <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden">
+        <thead style="background:#f7fbff;border-bottom:1px solid #eef6ff"><tr><th style="padding:14px 18px;text-align:left">Hệ điều hành</th><th style="padding:14px 18px;text-align:left">Phiên bản</th><th style="padding:14px 18px;text-align:left">Tải về</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:12px 18px">Windows (x64)</td><td style="padding:12px 18px">v1.0.0</td><td style="padding:12px 18px"><a class="btn primary" href="https://github.com/quoctuan21112009-maker/virtu_server/releases/download/v1/VirtuSetup.exe" target="_blank" rel="noopener">Tải .exe</a></td></tr>
+          <tr><td style="padding:12px 18px">Ubuntu / Debian</td><td style="padding:12px 18px">tar.gz</td><td style="padding:12px 18px"><em>Coming soon</em></td></tr>
+          <tr><td style="padding:12px 18px">macOS</td><td style="padding:12px 18px">pkg</td><td style="padding:12px 18px"><em>Coming soon</em></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section style="margin-top:22px">
+      <h2>Hướng dẫn nhanh (Client)</h2>
+      <ol>
+        <li>Tải file installer cho Windows và chạy: <code>VirtuSetup.exe</code></li>
+        <li>Cài đặt Python 3.9+ cho các máy chạy client nếu cần.</li>
+        <li>Nếu dùng mã nguồn: <code>python -m pip install -r requirements.txt --break-system-packages</code></li>
+        <li>Khởi động client: <code>python main.py</code></li>
+      </ol>
+    </section>
+
+    <section style="margin-top:22px">
+      <h2>Xác thực file (tùy chọn)</h2>
+      <p>Chúng tôi khuyến nghị kiểm tra checksum của installer. (Chưa có tập tin checksum cho bản này.)</p>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <div class="container">
+      <div>© 2026 Virtu</div>
+      <div>Hỗ trợ: <a href="mailto:quoctuan21112009@gmail.com">quoctuan21112009@gmail.com</a></div>
+    </div>
+  </footer>
+</body>
+</html>
