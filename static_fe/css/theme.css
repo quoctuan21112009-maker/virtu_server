@@ -1,0 +1,286 @@
+/* ================================================================
+   theme.css — VIRTU Modern Design System (Glassmorphism + Apple HIG)
+   Màu chủ đạo: Indigo/Cyber Blue (#3b82f6 - #4f46e5) trên nền Dark High-End
+   ================================================================ */
+
+:root[data-theme="dark"], :root {
+  --nen-chinh: #0f111a;
+  --nen-sidebar: #141724;
+  --nen-the: #1a1d2e;
+  --nen-the-hover: #22263d;
+  --nen-the-noi: #1f2338;
+  --nen-input: #121422;
+  --nen-terminal: #0a0b12;
+  --vien: #2a2e45;
+  --vien-hover: #3e4466;
+  --vien-focus: #4F6BFF;
+
+  --chu-chinh: #f1f5f9;
+  --chu-phu: #94a3b8;
+  --chu-mo: #64748b;
+
+  --nhan: #3b82f6;
+  --nhan-hover: #60a5fa;
+  --nhan-pressed: #2563eb;
+  --nhan-glow: rgba(59, 130, 246, 0.35);
+
+  --thanh-cong: #10b981;
+  --thanh-cong-nen: rgba(16, 185, 129, 0.12);
+  --canh-bao: #f59e0b;
+  --canh-bao-nen: rgba(245, 158, 11, 0.12);
+  --nguy-hiem: #ef4444;
+  --nguy-hiem-nen: rgba(239, 68, 68, 0.12);
+
+  --gradient-1: #2563eb;
+  --gradient-2: #7c3aed;
+  --gradient-card: linear-gradient(145deg, #1c2035, #16192a);
+  --gradient-door-active: linear-gradient(135deg, #059669, #10b981);
+  --gradient-door-closed: linear-gradient(135deg, #dc2626, #ef4444);
+
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.25);
+  --shadow-md: 0 6px 16px rgba(0,0,0,0.35);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.45);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.25);
+
+  --font-ho-tro: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+:root[data-theme="light"] {
+  --nen-chinh: #f4f6fb;
+  --nen-sidebar: #ffffff;
+  --nen-the: #ffffff;
+  --nen-the-hover: #f8fafc;
+  --nen-the-noi: #f1f5f9;
+  --nen-input: #f8fafc;
+  --nen-terminal: #0f172a;
+  --vien: #e2e8f0;
+  --vien-hover: #cbd5e1;
+  --vien-focus: #3b82f6;
+
+  --chu-chinh: #0f172a;
+  --chu-phu: #64748b;
+  --chu-mo: #94a3b8;
+
+  --nhan: #2563eb;
+  --nhan-hover: #1d4ed8;
+  --nhan-pressed: #1e40af;
+  --nhan-glow: rgba(37, 99, 235, 0.2);
+
+  --thanh-cong: #059669;
+  --thanh-cong-nen: rgba(5, 150, 105, 0.1);
+  --canh-bao: #d97706;
+  --canh-bao-nen: rgba(217, 119, 6, 0.1);
+  --nguy-hiem: #dc2626;
+  --nguy-hiem-nen: rgba(220, 38, 38, 0.1);
+
+  --gradient-1: #2563eb;
+  --gradient-2: #7c3aed;
+  --gradient-card: linear-gradient(145deg, #ffffff, #f8fafc);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.12);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: var(--font-ho-tro);
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background-color: var(--nen-chinh);
+  color: var(--chu-chinh);
+  font-size: 13.5px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  overflow: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ---------- Typography ---------- */
+.tieu-de {
+  font-size: 16pt;
+  font-weight: 700;
+  color: var(--chu-chinh);
+  letter-spacing: -0.4px;
+}
+.tieu-de-lon {
+  font-size: 20pt;
+  font-weight: 800;
+  color: var(--chu-chinh);
+  letter-spacing: -0.6px;
+}
+.phu-de {
+  color: var(--chu-phu);
+  font-size: 9.5pt;
+}
+
+/* ---------- Buttons ---------- */
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: var(--nhan);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 8px 16px;
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 9.5pt;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+button:hover { background-color: var(--nhan-hover); box-shadow: var(--shadow-glow); }
+button:active { background-color: var(--nhan-pressed); transform: scale(0.98); }
+button:disabled { background-color: var(--vien); color: var(--chu-mo); cursor: not-allowed; box-shadow: none; }
+
+button.nut-phu {
+  background-color: var(--nen-input);
+  border: 1px solid var(--vien);
+  color: var(--chu-chinh);
+}
+button.nut-phu:hover {
+  border-color: var(--nhan);
+  color: var(--nhan);
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+button.nut-nguy-hiem {
+  background-color: var(--nguy-hiem-nen);
+  border: 1px solid var(--nguy-hiem);
+  color: var(--nguy-hiem);
+}
+button.nut-nguy-hiem:hover {
+  background-color: var(--nguy-hiem);
+  color: #ffffff;
+}
+
+.nut-icon {
+  width: 34px;
+  height: 34px;
+  background-color: var(--nen-input);
+  border: 1px solid var(--vien);
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--chu-phu);
+  transition: all .15s ease;
+}
+.nut-icon:hover { border-color: var(--nhan); color: var(--nhan); background: rgba(59, 130, 246, 0.1); }
+.nut-icon.active { background: var(--nhan); color: #fff; border-color: var(--nhan); }
+
+/* ---------- Inputs ---------- */
+input[type="text"], input[type="password"], input[type="number"],
+input[type="datetime-local"], select, textarea {
+  background-color: var(--nen-input);
+  border: 1px solid var(--vien);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--chu-chinh);
+  font-size: 9.5pt;
+  outline: none;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+input::placeholder, textarea::placeholder { color: var(--chu-mo); }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--vien-focus);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+/* ---------- Tables ---------- */
+table.bang {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--nen-the);
+  border: 1px solid var(--vien);
+  border-radius: 12px;
+  overflow: hidden;
+}
+table.bang thead th {
+  background-color: rgba(255, 255, 255, 0.02);
+  color: var(--chu-mo);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--vien);
+  font-weight: 700;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  text-align: left;
+}
+table.bang tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 9.5pt;
+}
+table.bang tbody tr:hover { background-color: rgba(59, 130, 246, 0.05); }
+table.bang tbody tr:last-child td { border-bottom: none; }
+
+/* ---------- Chips ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 8pt;
+  font-weight: 700;
+}
+.chip.normal { color: var(--thanh-cong); background: var(--thanh-cong-nen); border: 1px solid rgba(16, 185, 129, 0.2); }
+.chip.suspicious { color: var(--canh-bao); background: var(--canh-bao-nen); border: 1px solid rgba(245, 158, 11, 0.2); }
+.chip.cheating { color: var(--nguy-hiem); background: var(--nguy-hiem-nen); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+/* ---------- Modals ---------- */
+.overlay-nen {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+}
+.hop-thoai {
+  background: var(--nen-the);
+  border: 1px solid var(--vien);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  max-width: 92vw;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* ---------- Utility ---------- */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.gap-4 { gap: 4px; } .gap-6 { gap: 6px; } .gap-8 { gap: 8px; } .gap-10 { gap: 10px; } .gap-16 { gap: 16px; } .gap-20 { gap: 20px; }
+.flex-1 { flex: 1; }
+.center { align-items: center; justify-content: center; }
+.hidden { display: none !important; }
+.scroll-y { overflow-y: auto; }
+.w-full { width: 100%; }
+.text-center { text-align: center; }
+.spacer { flex: 1; }
+
+/* ---------- Scrollbars ---------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--vien); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--chu-mo); }
